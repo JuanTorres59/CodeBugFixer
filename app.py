@@ -93,6 +93,22 @@ def index():
         
         return render_template("index.html", explanation = explanation, fixed_code = fixed_code)
     return render_template("index.html")
+
+@app.route("/charge", methods=["POST"])
+def charge():
+    amount = int(request.form["amount"])
+    plan = str(request.form["plan"])
+    customer = stripe.Customer.create(
+        email=request.form["stripeEmail"],
+        source=request.form["stripeToken"]
+    )
+    charge = stripe.Charge.create(
+        customer=customer.id,
+        amount=amount,
+        currency="usd",
+        description="App Charge"
+    )
+    return render_template("charge.html", amount = amount, plan=plan)
 if __name__ == "__main__":
     app.run()
     
