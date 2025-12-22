@@ -1,15 +1,65 @@
 from flask import Flask, request, render_template
 from openai import OpenAI
 import config
+import hashlib
+import sqlite3
+import stripe
+
 app = Flask(__name__)
 # API Token
 client = OpenAI(
     api_key=config.API_KEY
 )
+stripe.api_key = config.STRIPE_TEST_KEY
+
+def initialize_database():
+    conn = sqlite3.connect('app.db')
+    c = conn.cursor()
+    c.execute(
+        '''CREATE TABLE IF NOT EXISTS users (fingerprint text primary key, usage_counter int)''')
+    conn.commit()
+    conn.close()
+    
+def get_fingerprint():
+    browser = request.user_agent.browser
+    version = request.user_agent.version and float(request.user_agent.version.split(".")[0])
+    platform = request.user_agent.platform
+    string = f"{browser}:{version}:{platform}"
+    fingerprint = hashlib.sha256(string.encode("utf-8")).hexdigest()
+    print(fingerprint)
+    return fingerprint
+
+def get_usage_counter(fingerprint):
+    conn = sqlite3.connect('app.db')
+    c = conn.cursor()
+    result = c.execute('SELECT usage_counter FROM users WHERE fingerprint=?', [fingerprint]).fetchone()
+    conn.close()
+    if result is None:
+        conn = sqlite3.connect('app.db')
+        c = conn.cursor()
+        c.execute('INSERT INTO users (fingerprint, usage_counter) VALUES (?, 0)', [fingerprint])
+        conn.commit()
+        conn.close()
+        return 0
+    else:
+        return result[0]
+    
+def update_usage_counter(fingerprint, usage_counter):
+    conn = sqlite3.connect('app.db')
+    c = conn.cursor()
+    c.execute('UPDATE users SET usage_counter=? WHERE fingerprint=?', [usage_counter, fingerprint])
+    conn.commit()
+    conn.close()
 
 @app.route("/", methods = ["GET", "POST"])
 def index():
+    initialize_database()
+    fingerprint = get_fingerprint()
+    usage_counter = get_usage_counter(fingerprint)
+    
     if request.method == "POST":
+        if usage_counter > 3:
+            return render_template("payment.html")
         code = request.form["code"]
         error = request.form["error"]
         prompt = (f"Explain the error in this code without fixing it:"
@@ -37,6 +87,9 @@ def index():
             temperature=0.2,
         )
         fixed_code = fixed_code_completions.choices[0].message.content
+        usage_counter += 1
+        print(usage_counter)
+        update_usage_counter(fingerprint, usage_counter)
         
         return render_template("index.html", explanation = explanation, fixed_code = fixed_code)
     return render_template("index.html")
