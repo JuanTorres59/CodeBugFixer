@@ -1,16 +1,44 @@
-from flask import Flask, request, render_template
+import os
+
+from flask import Flask, abort, request, render_template
 from openai import OpenAI
-import config
 import hashlib
 import sqlite3
 import stripe
 
+try:
+    import config  # type: ignore
+except Exception:  # pragma: no cover
+    config = None
+
 app = Flask(__name__)
-# API Token
-client = OpenAI(
-    api_key=config.API_KEY
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or (getattr(config, "API_KEY", None) if config else None)
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY") or (
+    getattr(config, "STRIPE_TEST_KEY", None) if config else None
 )
-stripe.api_key = config.STRIPE_TEST_KEY
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY") or (
+    getattr(config, "STRIPE_PUBLISHABLE_KEY", None) if config else None
+) or "pk_test_51SgzAwDswM9mzDDUVTtngkGL6igBwVKaLzhcgoszBpirsgFBCC2A8trfYjlmESTNQoRvNMqOfEmaJKnDCiEFS43h00NpzuqNkB"
+
+def get_openai_client() -> OpenAI:
+    if not OPENAI_API_KEY:
+        raise RuntimeError("Missing OpenAI API key. Set OPENAI_API_KEY (recommended) or define API_KEY in config.py.")
+    return OpenAI(api_key=OPENAI_API_KEY)
+
+
+def configure_stripe() -> None:
+    if not STRIPE_SECRET_KEY:
+        raise RuntimeError(
+            "Missing Stripe secret key. Set STRIPE_SECRET_KEY (recommended) or define STRIPE_TEST_KEY in config.py."
+        )
+    stripe.api_key = STRIPE_SECRET_KEY
+
+PLAN_AMOUNTS_USD_CENTS = {
+    "monthly": 500,
+    "quarterly": 1200,
+    "annual": 4500,
+}
 
 def initialize_database():
     conn = sqlite3.connect('app.db')
@@ -59,12 +87,17 @@ def index():
     
     if request.method == "POST":
         if usage_counter > 3:
-            return render_template("payment.html")
+            return render_template("payment.html", stripe_publishable_key=STRIPE_PUBLISHABLE_KEY)
         code = request.form["code"]
         error = request.form["error"]
         prompt = (f"Explain the error in this code without fixing it:"
                   f"\n\n{code}\n\nError:\n\n{error}")
         model_engine = "gpt-3.5-turbo"
+
+        try:
+            client = get_openai_client()
+        except RuntimeError as exc:
+            abort(500, description=str(exc))
         
         explanation_completions = client.chat.completions.create(
             model = model_engine,
@@ -96,11 +129,24 @@ def index():
 
 @app.route("/charge", methods=["POST"])
 def charge():
-    amount = int(request.form["amount"])
-    plan = str(request.form["plan"])
+    plan = (request.form.get("plan") or "").strip().lower()
+    if plan not in PLAN_AMOUNTS_USD_CENTS:
+        abort(400, description="Unknown plan.")
+    amount = PLAN_AMOUNTS_USD_CENTS[plan]
+
+    stripe_email = request.form.get("stripeEmail")
+    stripe_token = request.form.get("stripeToken")
+    if not stripe_email or not stripe_token:
+        abort(400, description="Missing Stripe token.")
+
+    try:
+        configure_stripe()
+    except RuntimeError as exc:
+        abort(500, description=str(exc))
+
     customer = stripe.Customer.create(
-        email=request.form["stripeEmail"],
-        source=request.form["stripeToken"]
+        email=stripe_email,
+        source=stripe_token,
     )
     charge = stripe.Charge.create(
         customer=customer.id,
@@ -110,5 +156,6 @@ def charge():
     )
     return render_template("charge.html", amount = amount, plan=plan)
 if __name__ == "__main__":
-    app.run()
+    port = int(os.getenv("PORT", "5000"))
+    app.run(host="0.0.0.0", port=port)
     

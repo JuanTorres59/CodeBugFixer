@@ -27,7 +27,7 @@
                                 <script
                                     src="https://checkout.stripe.com/checkout.js"
                                     class="stripe-button"
-                                    data-key= pk_test_51SgzAwDswM9mzDDUVTtngkGL6igBwVKaLzhcgoszBpirsgFBCC2A8trfYjlmESTNQoRvNMqOfEmaJKnDCiEFS43h00NpzuqNkB
+                                    data-key="{{ stripe_publishable_key }}"
                                     data-amount = "500"
                                     data-name = "Monthly Plan"
                                     data-description = "$5 per month"
@@ -47,15 +47,15 @@
                         </div>
                         <footer class="card_footer">
                             <form action="/charge" method ="post">
-                                <input type="hidden" name="plan" value="monthly">
-                                <input type="hidden" name="amount" value="500">
+                                <input type="hidden" name="plan" value="quarterly">
+                                <input type="hidden" name="amount" value="1200">
                                 <script
                                     src="https://checkout.stripe.com/checkout.js"
                                     class="stripe-button"
-                                    data-key= pk_test_51SgzAwDswM9mzDDUVTtngkGL6igBwVKaLzhcgoszBpirsgFBCC2A8trfYjlmESTNQoRvNMqOfEmaJKnDCiEFS43h00NpzuqNkB
-                                    data-amount = "500"
-                                    data-name = "Monthly Plan"
-                                    data-description = "$5 per month"
+                                    data-key="{{ stripe_publishable_key }}"
+                                    data-amount = "1200"
+                                    data-name = "Quarterly Plan"
+                                    data-description = "$12 per quarter"
                                     data-image = "https://stripe.com/img/documentation/checkout/marketplace.png"
                                     data-locale = "auto"
                                     data-zip-code="false">
@@ -72,15 +72,15 @@
                         </div>
                         <footer class="card_footer">
                             <form action="/charge" method ="post">
-                                <input type="hidden" name="plan" value="monthly">
-                                <input type="hidden" name="amount" value="500">
+                                <input type="hidden" name="plan" value="annual">
+                                <input type="hidden" name="amount" value="4500">
                                 <script
                                     src="https://checkout.stripe.com/checkout.js"
                                     class="stripe-button"
-                                    data-key= pk_test_51SgzAwDswM9mzDDUVTtngkGL6igBwVKaLzhcgoszBpirsgFBCC2A8trfYjlmESTNQoRvNMqOfEmaJKnDCiEFS43h00NpzuqNkB
-                                    data-amount = "500"
-                                    data-name = "Monthly Plan"
-                                    data-description = "$5 per month"
+                                    data-key="{{ stripe_publishable_key }}"
+                                    data-amount = "4500"
+                                    data-name = "Annual Plan"
+                                    data-description = "$45 per year"
                                     data-image = "https://stripe.com/img/documentation/checkout/marketplace.png"
                                     data-locale = "auto"
                                     data-zip-code="false">
