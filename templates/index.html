@@ -1,84 +1,215 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Code Bug Fixer</title>
-    <style type="text/css">
-        body{
-            font-family: Arial sans-serif;
-            background-color: #f6f7f9;
-        }
-        .header {
-            background-color: #3b5998;
-            color: #ffffff;
-            padding: 15px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: bold;
-        }
-        .container {
-            display: flex;
-            justify-content: space-between;
-            padding: 15px;
-        }
-        .left-column, .right-column {
-            width: 49%;
-            padding: 15px;
-        }
-            textarea{
-            width: 100%;
-            height: 200px;
-            font-size: 16px;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #cccccc;
-            border-radius: 5px;
-            resize: none;
-        }
-        .fixed-code, .explanation {
-            background-color: #e9ebee;
-            color: #3b5998;
-            font-weight: bold;
-        }
-        .submit-button {
-            background-color: #3b5998;
-            color: #ffffff;
-            font-size: 18px;
-            font-weight: bold;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            margin-top: 15px;
-            cursor: pointer;
-        }
-        .submit-button:hover {
-            background-color: #4b76be;
-        }
-    </style>
-</head>
-<body>
-<div class = "header">
-    <h1>Code Bug Fixer</h1>
-</div>
-<form action="/" method="post">
-    <button class ="submit-button" type="submit">Code Fix</button>
-    <div class = "container">
-        <div class="left-column">
-            <textarea name="code" placeholder="Enter Code">
-            </textarea>
-            <textarea name="error" placeholder="Enter Error">
-            </textarea>
-        </div>
-        <div class = "right-column">
-            <textarea class="fixed-code" name="fixed-code" placeholder="Fixed Code" readonly>{{ fixed_code  }}
-            </textarea>
-            <textarea class = "explanation" name="explanation" placeholder="Explanation" readonly>{{ explanation  }}
-            </textarea>
-        </div>
+{% extends "base.html" %}
+
+{% block title %}Code Bug Fixer{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>Paste your code + error → get a fix</h1>
+    <p>
+        A developer-focused tool for quick debugging: drop in a snippet and the stack trace, then review an explanation,
+        a corrected version, and a diff you can copy in seconds.
+    </p>
+    <div class="hero-meta">
+        <span class="pill">
+            <strong>{{ credits_remaining|default(0) }}</strong>
+            free fixes left
+        </span>
+        <a class="pill" href="/payment">
+            <strong>Upgrade</strong>
+            for unlimited access
+        </a>
+        <span class="pill">
+            <strong>Tip</strong>
+            Cmd/Ctrl + Enter to run
+        </span>
     </div>
-</form>
-</body>
-</html>
+</section>
+
+<div class="grid grid-2">
+    <section class="card panel" aria-label="Inputs">
+        {% if ui_error %}
+            <div class="callout callout-danger" role="alert">
+                <div aria-hidden="true">⚠</div>
+                <div>
+                    <strong>Couldn’t run your request.</strong>
+                    <div>{{ ui_error }}</div>
+                </div>
+            </div>
+        {% else %}
+            <div class="callout">
+                <div aria-hidden="true">✨</div>
+                <div>
+                    <strong>Best results:</strong> include the exact error message, stack trace, and any relevant imports
+                    or context.
+                </div>
+            </div>
+        {% endif %}
+
+        <form action="/" method="post" data-fix-form>
+            <div class="field">
+                <label class="label" for="code">Code</label>
+                <div class="editor" data-editor>
+                    <div class="editor-gutter" data-editor-gutter aria-hidden="true"></div>
+                    <textarea
+                        id="code"
+                        name="code"
+                        spellcheck="false"
+                        autocomplete="off"
+                        autocapitalize="off"
+                        placeholder="Paste your code here…"
+                        required
+                    >{{ code_input|default("") }}</textarea>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label" for="error">Error / Stack Trace</label>
+                <textarea
+                    id="error"
+                    name="error"
+                    placeholder="Paste the full error message / stack trace…"
+                    required
+                >{{ error_input|default("") }}</textarea>
+            </div>
+
+            <div class="controls" aria-label="Controls">
+                <div class="grow">
+                    <label class="label" for="language">Language</label>
+                    <select id="language" name="language">
+                        <option value="auto" {% if language|default("auto") == "auto" %}selected{% endif %}>Auto-detect</option>
+                        <option value="python" {% if language == "python" %}selected{% endif %}>Python</option>
+                        <option value="javascript" {% if language == "javascript" %}selected{% endif %}>JavaScript</option>
+                        <option value="typescript" {% if language == "typescript" %}selected{% endif %}>TypeScript</option>
+                        <option value="java" {% if language == "java" %}selected{% endif %}>Java</option>
+                        <option value="csharp" {% if language == "csharp" %}selected{% endif %}>C#</option>
+                        <option value="cpp" {% if language == "cpp" %}selected{% endif %}>C/C++</option>
+                        <option value="go" {% if language == "go" %}selected{% endif %}>Go</option>
+                        <option value="ruby" {% if language == "ruby" %}selected{% endif %}>Ruby</option>
+                    </select>
+                </div>
+
+                <div>
+                    <div class="label">Tone</div>
+                    <div class="segmented" role="radiogroup" aria-label="Response tone">
+                        <input
+                            id="toneConcise"
+                            type="radio"
+                            name="tone"
+                            value="concise"
+                            {% if tone|default("concise") != "detailed" %}checked{% endif %}
+                        />
+                        <label for="toneConcise">Concise</label>
+
+                        <input
+                            id="toneDetailed"
+                            type="radio"
+                            name="tone"
+                            value="detailed"
+                            {% if tone == "detailed" %}checked{% endif %}
+                        />
+                        <label for="toneDetailed">Detailed</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-primary" type="submit" data-submit>
+                    <span aria-hidden="true">↻</span>
+                    Fix my code
+                </button>
+                <a class="btn btn-ghost" href="/">Clear</a>
+                <a class="btn btn-ghost" href="/payment">Get more fixes</a>
+            </div>
+        </form>
+    </section>
+
+    <section class="card panel" aria-label="Results">
+        <div class="panel-toolbar">
+            <div>
+                <div class="label">Results</div>
+                <div class="muted">Explanation, fixed code, and a quick diff.</div>
+            </div>
+            <div class="toolbar-actions">
+                {% if fixed_code %}
+                    <button class="btn btn-ghost" type="button" data-download data-download-target="fixedCodeText">
+                        Download
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="Result tabs">
+            <button class="tab" type="button" role="tab" aria-selected="true" data-tab="explanation">Explanation</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" data-tab="fixed">Fixed Code</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" data-tab="diff">Diff</button>
+        </div>
+
+        <div class="tab-panel active" data-tab-panel="explanation" role="tabpanel">
+            <div class="panel-toolbar">
+                <div class="muted">What’s happening and why.</div>
+                <div class="toolbar-actions">
+                    {% if explanation %}
+                        <button class="btn btn-ghost" type="button" data-copy data-copy-target="explanationText">Copy</button>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if explanation %}
+                <div class="codeblock" id="explanationText">
+                    <div class="prose">{{ explanation }}</div>
+                </div>
+            {% else %}
+                <div class="empty">
+                    <div class="empty-title">No results yet</div>
+                    <div>Submit code + error to see an explanation here.</div>
+                    <div class="hint">Pro tip: include the line number and the exact exception message.</div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="tab-panel" data-tab-panel="fixed" role="tabpanel">
+            <div class="panel-toolbar">
+                <div class="muted">A corrected version you can copy.</div>
+                <div class="toolbar-actions">
+                    {% if fixed_code %}
+                        <button class="btn btn-ghost" type="button" data-copy data-copy-target="fixedCodeText">Copy</button>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if fixed_code %}
+                <div class="codeblock">
+                    <pre id="fixedCodeText"><code>{{ fixed_code }}</code></pre>
+                </div>
+            {% else %}
+                <div class="empty">
+                    <div class="empty-title">Fixed code will appear here</div>
+                    <div>Once you run a fix, you’ll be able to copy or download the output.</div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="tab-panel" data-tab-panel="diff" role="tabpanel">
+            <div class="panel-toolbar">
+                <div class="muted">A quick, readable change view.</div>
+                <div class="toolbar-actions">
+                    {% if fixed_code %}
+                        <button class="btn btn-ghost" type="button" data-copy data-copy-target="diffText">Copy</button>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if fixed_code %}
+                <div class="codeblock">
+                    <pre id="diffText" data-diff data-source="code" data-target="fixedCodeText"></pre>
+                </div>
+            {% else %}
+                <div class="empty">
+                    <div class="empty-title">Diff preview</div>
+                    <div>Run a fix to generate a lightweight diff summary.</div>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}

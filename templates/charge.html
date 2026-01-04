@@ -1,11 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Payment Confirmation</title>
-</head>
-<body>
-<h1>Payment Confirmation</h1>
-<p>You have successfully paid ${{ amount / 100}} for the {{ plan }} plan for unlimited access to the Code Bug Fixer </p>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}Payment Confirmation · Code Bug Fixer{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>Payment confirmed</h1>
+    <p>
+        Thanks — Stripe processed your payment successfully. You can go back to the editor and keep shipping.
+    </p>
+</section>
+
+<section class="card panel" aria-label="Receipt">
+    <div class="callout">
+        <div aria-hidden="true">✓</div>
+        <div>
+            <strong>Receipt</strong>
+            <div class="muted">You paid ${{ amount / 100 }} for the {{ plan }} plan.</div>
+        </div>
+    </div>
+
+    <div class="controls" style="margin-top: 16px;">
+        <a class="btn btn-primary" href="/">Back to Code Bug Fixer</a>
+        <a class="btn btn-ghost" href="/payment">View plans</a>
+    </div>
+</section>
+{% endblock %}

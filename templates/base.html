@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>{% block title %}Code Bug Fixer{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+    <script defer src="{{ url_for('static', filename='app.js') }}"></script>
+</head>
+<body>
+    <header class="topbar">
+        <div class="shell topbar-inner">
+            <a class="brand" href="/">
+                <span class="brand-mark" aria-hidden="true"></span>
+                <span class="brand-text">Code Bug Fixer</span>
+            </a>
+            <nav class="topbar-actions" aria-label="Primary">
+                <a class="btn btn-ghost" href="/payment">Upgrade</a>
+                <button class="btn btn-ghost btn-icon" type="button" data-theme-toggle aria-label="Toggle theme">
+                    <span class="icon" aria-hidden="true">◐</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="shell">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="shell footer-inner">
+            <span class="footer-text">Paste code + error → get an explanation and a fix.</span>
+            <span class="footer-text">Built for developers.</span>
+        </div>
+    </footer>
+
+    <div class="loading" data-loading hidden>
+        <div class="loading-card" role="status" aria-live="polite">
+            <div class="spinner" aria-hidden="true"></div>
+            <div class="loading-text">Working on it…</div>
+            <div class="loading-subtext">This usually takes a few seconds.</div>
+            <div class="loading-note" data-loading-note hidden>
+                Still running. If this takes longer than a minute, the server may be timing out — try again or check logs.
+            </div>
+            <div class="loading-actions" data-loading-actions hidden>
+                <button class="btn btn-ghost" type="button" data-loading-cancel>Cancel</button>
+                <a class="btn btn-primary" href="/">Reload</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
